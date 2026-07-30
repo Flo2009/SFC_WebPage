@@ -1,4 +1,4 @@
 const User = require('./User');
-// const Station = require('./Station')
+const Submission = require('./Submission');
 
-module.exports = { User };
+module.exports = { User, Submission };
