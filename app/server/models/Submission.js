@@ -15,6 +15,14 @@ const submissionSchema = new Schema({
   },
   message: { type: String, required: true }, // For project comments or cover letters
   resumeUrl: { type: String }, // Stores the secure cloud download URL for the resume file
+
+  location: { type: String }, // Stores city, country, or region
+  preferredContact: { 
+    type: String, 
+    enum: ['EMAIL', 'PHONE', 'WHATSAPP'],
+    default: 'EMAIL'
+  }
+
 }, { timestamps: true });
 
 const Submission = model('Submission', submissionSchema);

@@ -19,29 +19,12 @@ const userSchema = new Schema(
     },
     message: { 
       type: String 
-    },
-    donationAmount: [
-      {
-        type: Number
-      }
-    ],
-    donated: {
-      type: Boolean,
-      default: false
     }
   },
   {
-    toJSON: { 
-      virtuals: true 
-    },
-    id: false
+    timestamps: true // Adds createdAt and updatedAt timestamps for your admin users
   }
 );
-
-// Virtual property to support tracking arrays if needed
-userSchema.virtual('stationCount').get(function () {
-  return this.donationAmount ? this.donationAmount.length : 0;
-});
 
 const User = model('User', userSchema);
 module.exports = User;
