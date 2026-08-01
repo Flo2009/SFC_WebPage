@@ -19,6 +19,17 @@ const userSchema = new Schema(
     },
     message: { 
       type: String 
+    },
+    passkeys: [
+      {
+        credentialID: { type: String, required: true },
+        credentialPublicKey: { type: String, required: true }, // Saved as base64 string
+        counter: { type: Number, default: 0 },
+        transports: [{ type: String }]
+      }
+    ],
+    currentChallenge: { 
+      type: String 
     }
   },
   {
