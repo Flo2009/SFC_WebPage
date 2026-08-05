@@ -1,7 +1,6 @@
 import ReactDOM from 'react-dom/client';
 // Bringing in the required imports from 'react-router-dom' to set up application routing behavior
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 
@@ -9,9 +8,8 @@ import './index.css';
 import App from './App';
 import ErrorPage from './pages/ErrorPage';
 import ContactPage from './pages/ContactPage';
-import PortfolioPage from './pages/PortfolioPage';
 import AboutPage from './pages/AboutPage';
-import ResumePage from './pages/ResumePage';
+import LandingPage from './pages/LandingPage'; // Lowercase pages folder path rule [1]
 
 // Define the accessible routes, and which components respond to which URL
 const router = createBrowserRouter([
@@ -21,21 +19,19 @@ const router = createBrowserRouter([
     errorElement: <ErrorPage />,
     children: [
       {
-        index: true,
+        index: true, // This makes the brand-new landing page your home view!
+        element: <LandingPage />,
+      },
+      {
+        path: '/about', // Repositioned your original About Me page cleanly here
         element: <AboutPage />,
       },
+     
       {
-        path: '/portfolio',
-        element: <PortfolioPage />,
-      },
-      {
-        path: 'contact',
+        path: '/contact',
         element: <ContactPage />,
       },
-      {
-        path: 'resume',
-        element: <ResumePage />,
-      },
+      
     ],
   },
 ]);

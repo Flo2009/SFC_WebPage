@@ -1,8 +1,8 @@
-// src/utils/mutations.js
 import { gql } from '@apollo/client';
 
+// 1. Core mutation fired automatically by your React ChatBot
 export const SUBMIT_INQUIRY = gql`
-  mutation SubmitInquiry(
+  mutation submitInquiry(
     $name: String!
     $email: String!
     $phone: String
@@ -25,6 +25,56 @@ export const SUBMIT_INQUIRY = gql`
       _id
       name
       type
+    }
+  }
+`;
+
+// 2. Fallback traditional administrator login link
+export const LOGIN_USER = gql`
+  mutation login($email: String!, $password: String!) {
+    login(email: $email, password: $password) {
+      token
+      user {
+        _id
+        username
+      }
+    }
+  }
+`;
+
+// 3. Publish a new media-rich article to your Blog
+export const CREATE_BLOG = gql`
+  mutation createBlog($title: String!, $content: String!, $summary: String, $imageUrl: String) {
+    createBlog(title: $title, content: $content, summary: $summary, imageUrl: $imageUrl) {
+      _id
+      title
+    }
+  }
+`;
+
+// 4. Publish a fresh job opening onto your Career Board
+export const CREATE_JOB = gql`
+  mutation createJob(
+    $title: String!
+    $companyName: String!
+    $description: String!
+    $requirements: String
+    $location: String!
+    $salaryRange: String
+    $imageUrl: String
+  ) {
+    createJob(
+      title: $title
+      companyName: $companyName
+      description: $description
+      requirements: $requirements
+      location: $location
+      salaryRange: $salaryRange
+      imageUrl: $imageUrl
+    ) {
+      _id
+      title
+      companyName
     }
   }
 `;
