@@ -1,42 +1,54 @@
 import ReactDOM from 'react-dom/client';
-// Bringing in the required imports from 'react-router-dom' to set up application routing behavior
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+
+// 1. Maintain your local style sheets and font pack nodes
 import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js'; // ADD THIS LINE TO RUN ACCORDION INTERACTIONS OFFLINE!
 import './index.css';
 
-// Bringing in the pages the router will use to conditionally show the appropriate views
+import '@fontsource/quicksand/300.css';
+import '@fontsource/quicksand/400.css';
+import '@fontsource/quicksand/500.css';
+import '@fontsource/quicksand/600.css';
+
 import App from './App';
 import ErrorPage from './pages/ErrorPage';
 import ContactPage from './pages/ContactPage';
 import AboutPage from './pages/AboutPage';
-import LandingPage from './pages/LandingPage'; // Lowercase pages folder path rule [1]
+import LandingPage from './pages/LandingPage';
 
-// Define the accessible routes, and which components respond to which URL
+
+// THE CONST ROUTER DEFINITION LIVES RIGHT HERE:
 const router = createBrowserRouter([
   {
     path: '/',
     element: <App />,
     errorElement: <ErrorPage />,
     children: [
-      {
-        index: true, // This makes the brand-new landing page your home view!
-        element: <LandingPage />,
+      { 
+        index: true, 
+        element: <LandingPage /> 
       },
-      {
-        path: '/about', // Repositioned your original About Me page cleanly here
-        element: <AboutPage />,
+      { 
+        path: '/about', 
+        element: <AboutPage /> 
       },
-     
-      {
-        path: '/contact',
-        element: <ContactPage />,
+      { 
+        path: 'contact', 
+        element: <ContactPage /> 
       },
-      
     ],
   },
 ]);
 
-// Render the RouterProvider component
+const forceFontStyles = document.createElement('style');
+forceFontStyles.innerHTML = `
+  *, *::before, *::after, html, body, div, span, h1, h2, h3, h4, h5, h6, p, a, button, select, input, textarea, ul, li {
+    font-family: 'Quicksand', sans-serif !important;
+  }
+`;
+document.head.appendChild(forceFontStyles);
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <RouterProvider router={router} />
 );
