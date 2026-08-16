@@ -31,12 +31,13 @@ export const SUBMIT_INQUIRY = gql`
 
 // 2. Fallback traditional administrator login link
 export const LOGIN_USER = gql`
-  mutation login($email: String!, $password: String!) {
+  mutation Login($email: String!, $password: String!) {
     login(email: $email, password: $password) {
       token
       user {
         _id
         username
+        email
       }
     }
   }
@@ -75,6 +76,19 @@ export const CREATE_JOB = gql`
       _id
       title
       companyName
+    }
+  }
+`;
+
+export const CREATE_TESTIMONIAL = gql`
+  mutation CreateTestimonial($clientName: String!, $company: String!, $role: String, $quote: String!, $rating: Int, $imageUrl: String) {
+    createTestimonial(clientName: $clientName, company: $company, role: $role, quote: $quote, rating: $rating, imageUrl: $imageUrl) {
+      _id
+      clientName
+      company
+      role
+      quote
+      rating
     }
   }
 `;

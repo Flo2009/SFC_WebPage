@@ -62,3 +62,18 @@ export const GET_ALL_JOBS = gql`
     }
   }
 `;
+
+export const GET_ALL_TESTIMONIALS = gql`
+  query GetAllTestimonials {
+    getAllTestimonials {
+      _id
+      clientName
+      company
+      role
+      quote
+      rating
+      imageUrl
+      createdAt
+    }
+  }
+`;

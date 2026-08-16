@@ -2,12 +2,30 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import brandLogo from '../assets/Brand.png'; // Case-perfect relative logo path
 
-const Nav = () => {
+// Comprehensive dictionary translating header action links based on active context
+const navigationTranslations = {
+  EN: {
+    home: "Home",
+    about: "About Us",
+    contact: "Contact",
+    blog: "Blog"
+  },
+  DE: {
+    home: "Startseite",
+    about: "Über uns",
+    contact: "Kontakt",
+    blog: "Blog"
+  }
+};
+
+const Nav = ({ lang }) => {
+  // Gracefully fallback to English if global layout rendering contexts parse empty
+  const activeLang = lang || 'EN';
+  const navText = navigationTranslations[activeLang];
+
   return (
-    <nav 
-      className="navbar navbar-expand-lg navbar-dark position-absolute top-0 start-0 w-100 py-4" 
-      style={{ zIndex: 10, backgroundColor: 'transparent' }}
-    >
+    <nav className="navbar navbar-expand-lg navbar-dark position-absolute top-0 start-0 w-100 py-4" style={{ zIndex: 10, backgroundColor: 'transparent' }} >
+      
       {/* Scope CSS Styles for Navigation Accents inside the component */}
       <style>{`
         .suess-nav-link {
@@ -37,14 +55,9 @@ const Nav = () => {
       `}</style>
 
       <div className="container-fluid px-5">
-        
         {/* Brand Container: Logo on the Left, Name directly after */}
         <Link to="/" className="navbar-brand d-flex align-items-center gap-3 m-0">
-          <img 
-            src={brandLogo} 
-            alt="Suess Consulting Logo" 
-            className="suess-nav-logo"
-          />
+          <img src={brandLogo} alt="Suess Consulting Logo" className="suess-nav-logo" />
           <span className="suess-brand-text">
             Suess Consulting<span className="suess-accent-dot">.</span>
           </span>
@@ -67,21 +80,26 @@ const Nav = () => {
         <div className="collapse navbar-collapse justify-content-end" id="suessNavbar">
           <ul className="navbar-nav gap-4 mt-3 mt-lg-0">
             <li className="nav-item">
-              <Link to="/" className="nav-link suess-nav-link">Home</Link>
+              <Link to="/" className="nav-link suess-nav-link">{navText.home}</Link>
             </li>
             <li className="nav-item">
-              <Link to="/about" className="nav-link suess-nav-link">About Us</Link>
+              <Link to="/about" className="nav-link suess-nav-link">{navText.about}</Link>
             </li>
             <li className="nav-item">
-              <Link to="/contact" className="nav-link suess-nav-link">Contact</Link>
+              <Link to="/contact" className="nav-link suess-nav-link">{navText.contact}</Link>
+            </li>
+            
+            {/* Newly added connected corporate blog route column path link */}
+            <li className="nav-item">
+              <Link to="/blog" className="nav-link suess-nav-link">{navText.blog}</Link>
             </li>
           </ul>
         </div>
-
       </div>
     </nav>
   );
 };
 
 export default Nav;
+
 
