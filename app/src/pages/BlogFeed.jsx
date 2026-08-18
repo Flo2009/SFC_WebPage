@@ -29,7 +29,10 @@ const translations = {
     lblClientCompany: "Company Name",
     lblClientRole: "Corporate Title / Role",
     lblClientQuote: "Client Praise Quote / Statement",
-    btnSaveReview: "Publish Testimonial"
+    btnSaveReview: "Publish Testimonial",
+    tabLeads: "Inbound Inquiries",
+    lblLeadEmpty: "No customer contact entries found inside the database repository.",
+    lblMessage: "Project Scope Summary"
   },
   DE: {
     heroTitle: "Beratungseinblicke",
@@ -57,7 +60,10 @@ const translations = {
     lblClientCompany: "Name des Unternehmens",
     lblClientRole: "Position / Titel",
     lblClientQuote: "Zitat des Kunden / Aussage",
-    btnSaveReview: "Referenz veröffentlichen"
+    btnSaveReview: "Referenz veröffentlichen",
+    tabLeads: "Eingehende Anfragen",
+    lblLeadEmpty: "Keine Kundenkontakteinträge im Datenbank-Repository gefunden.",
+    lblMessage: "Zusammenfassung des Projektumfangs"
   }
 };
 
@@ -71,6 +77,7 @@ const BlogFeed = () => {
 
   const [posts, setPosts] = useState([]);
   const [testimonials, setTestimonials] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
   const [uiLoading, setUiLoading] = useState(true);
 
   const [newPost, setNewPost] = useState({ title: '', summary: '', category: 'Operations', content: '', imageUrl: '' });
@@ -80,50 +87,60 @@ const BlogFeed = () => {
   const syncPlatformStreams = async () => {
     try {
       setUiLoading(true);
-      const response = await fetch('http://localhost:3001/graphql', {
+      const token = localStorage.getItem('id_token');
+
+      // Clear layout state arrays before downloading fresh elements
+      setPosts([]);
+      setTestimonials([]);
+      setSubmissions([]);
+
+      const publicResponse = await fetch('http://localhost:3001/graphql', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: `
-            query SynchronizeDashboard {
-              getAllBlogs { 
-                _id 
-                title 
-                content 
-                summary 
-                imageUrl 
-              }
-              getAllTestimonials { 
-                _id 
-                clientName 
-                company 
-                role 
-                quote 
-                imageUrl
-              }
+            query FetchPublicFeeds {
+              getAllBlogs { _id title content summary imageUrl createdAt }
+              getAllTestimonials { _id clientName company role quote rating imageUrl createdAt }
             }
           `
         })
       });
 
-      const result = await response.json();
-      
-      // Error reporting monitor trace
-      if (result.errors) {
-        console.error("❌ Schema alignment failed inside GraphQL server:", result.errors);
+      const publicResult = await publicResponse.json();
+      if (publicResult?.data) {
+        if (publicResult.data.getAllBlogs) setPosts(publicResult.data.getAllBlogs);
+        if (publicResult.data.getAllTestimonials) setTestimonials(publicResult.data.getAllTestimonials);
       }
 
-      if (result?.data) {
-        if (result.data.getAllBlogs) setPosts(result.data.getAllBlogs);
-        if (result.data.getAllTestimonials) setTestimonials(result.data.getAllTestimonials);
+      if (token && isAdmin) {
+        const adminResponse = await fetch('http://localhost:3001/graphql', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            query: `
+              query FetchAdminLeads {
+                getAllSubmissions { _id name email phone message createdAt }
+              }
+            `
+          })
+        });
+
+        const adminResult = await adminResponse.json();
+        if (adminResult?.data?.getAllSubmissions) {
+          setSubmissions(adminResult.data.getAllSubmissions);
+        }
       }
+
     } catch (err) {
       console.error("Pipeline data sync error:", err);
     } finally {
       setUiLoading(false);
     }
   };
-
 
   useEffect(() => {
     syncPlatformStreams();
@@ -135,8 +152,7 @@ const BlogFeed = () => {
     setActiveTab('blog');
     syncPlatformStreams();
   };
-
-   const handlePublishPost = async (e) => {
+  const handlePublishPost = async (e) => {
     e.preventDefault();
     if (!newPost.title.trim() || !newPost.content.trim()) {
       setValidationError(t.valRequired);
@@ -146,16 +162,11 @@ const BlogFeed = () => {
     try {
       await fetch('http://localhost:3001/graphql', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${localStorage.getItem('id_token')}` 
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('id_token')}` },
         body: JSON.stringify({
           query: `
             mutation CreateBlog($title: String!, $content: String!, $summary: String, $imageUrl: String) {
-              createBlog(title: $title, content: $content, summary: $summary, imageUrl: $imageUrl) { 
-                _id 
-              }
+              createBlog(title: $title, content: $content, summary: $summary, imageUrl: $imageUrl) { _id }
             }
           `,
           variables: {
@@ -201,6 +212,7 @@ const BlogFeed = () => {
       console.error(err);
     }
   };
+
   return (
     <div className="blog-page bg-white" style={{ fontFamily: "'Quicksand', sans-serif !important" }}>
       <style>{`
@@ -220,32 +232,8 @@ const BlogFeed = () => {
         .admin-editor-card { border: 2px dashed #ffc107 !important; border-radius: 16px; background-color: #fff9e6; }
         .hero-alignment-wrapper { position: absolute; bottom: -68px; left: 0; width: 100%; z-index: 30; }
         .lang-toggle-badge { display: flex; gap: 10px; float: right; padding-right: 15px; }
-        /* Update your .lang-btn rules near the middle of your style tag inside PART 2: */
-.lang-btn { 
-  background: #343a40 !important; 
-  color: #ffffff !important; 
-  border: 1px solid #ffc107 !important; 
-  font-size: 0.85rem; 
-  font-weight: 600; 
-  border-radius: 20px; 
-  padding: 5px 15px; 
-  cursor: pointer; 
-  transition: all 0.2s ease-in-out; 
-}
-
-.lang-btn:hover {
-  background: #dc3545 !important;
-  border-color: #dc3545 !important;
-  color: #ffffff !important;
-}
-
-/* FORCES THE ACTIVE BUTTON BACKGROUND COLOR TO HIGH-VISIBILITY CORPORATE GOLD */
-.lang-btn.active-lang { 
-  background: #ffc107 !important; 
-  color: #343a40 !important; 
-  border-color: #ffc107 !important;
-}
-
+        .lang-btn { background: #343a40 !important; color: #fff !important; border: 1px solid #ffc107 !important; font-size: 0.85rem; font-weight: 600; border-radius: 20px; padding: 5px 15px; cursor: pointer; transition: all 0.2s ease; }
+        .lang-btn.active-lang { background: #ffc107 !important; color: #343a40 !important; }
       `}</style>
 
       {/* Hero Banner */}
@@ -268,7 +256,9 @@ const BlogFeed = () => {
           
           <div className="text-start mb-4 ps-2">
             <div><span className="section-flag-title">{t.sectionTitle}</span><span className="section-flag-line"></span></div>
-            <h2 className="section-main-heading">{activeTab === 'blog' ? t.heading : t.tabReviews}</h2>
+            <h2 className="section-main-heading">
+              {activeTab === 'blog' ? t.heading : activeTab === 'testimonials' ? t.tabReviews : t.tabLeads}
+            </h2>
             {isAdmin && (
               <div style={{ position: 'absolute', top: '10px', right: '15px' }}>
                 <button type="button" onClick={handleAdminLogout} className="btn btn-outline-danger btn-sm rounded-pill px-4">{t.lblLogoutBtn}</button>
@@ -281,6 +271,9 @@ const BlogFeed = () => {
             <button onClick={() => { setActiveTab('blog'); setValidationError(''); }} className={`sub-tab-pill ${activeTab === 'blog' ? 'active-sub-tab' : ''}`}>{t.tabPosts}</button>
             {(testimonials.length > 0 || isAdmin) && (
               <button onClick={() => { setActiveTab('testimonials'); setValidationError(''); }} className={`sub-tab-pill ${activeTab === 'testimonials' ? 'active-sub-tab' : ''}`}>{t.tabReviews}</button>
+            )}
+            {isAdmin && (
+              <button onClick={() => { setActiveTab('leads'); setValidationError(''); }} className={`sub-tab-pill ${activeTab === 'leads' ? 'active-sub-tab' : ''}`}>{t.tabLeads}</button>
             )}
           </div>
 
@@ -301,16 +294,8 @@ const BlogFeed = () => {
                       <option value="Quality">{t.optQual}</option>
                     </select>
                   </div>
-                  
-                  {/* RESTORED IMAGE INPUT FOR BLOG POSTS */}
                   <div className="col-12">
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      placeholder="📸 Article Showcase Graphic / Schematic File Link (URL)" 
-                      value={newPost.imageUrl} 
-                      onChange={(e) => setNewPost({...newPost, imageUrl: e.target.value})} 
-                    />
+                    <input type="text" className="form-control" placeholder="📸 Article Showcase Graphic / Schematic File Link (URL)" value={newPost.imageUrl} onChange={(e) => setNewPost({...newPost, imageUrl: e.target.value})} />
                   </div>
                   <div className="col-12">
                     <input type="text" className="form-control" placeholder={t.lblSummaryField} value={newPost.summary || ''} onChange={(e) => setNewPost({...newPost, summary: e.target.value})} />
@@ -341,51 +326,97 @@ const BlogFeed = () => {
               </form>
             </div>
           )}
+
           {/* DISPLAY CONTENT LIST STREAMS */}
-          <div className="d-flex flex-column gap-4">
+          <div className="d-flex flex-column gap-4 w-100">
             {uiLoading ? (
               <div className="text-center py-5 text-muted">{t.lblLoading}</div>
-            ) : activeTab === 'blog' ? (
-              posts.length === 0 ? <div className="text-center py-4 border rounded bg-white">{t.lblEmpty}</div> :
-              posts.map((post) => (
-                <article key={post._id} className="blog-article-card p-4 p-md-5 shadow-sm bg-white">
-                  <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                    <span className="blog-category-badge">
-                      {post.category === 'Maintenance' ? t.optMaint : 
-                       post.category === 'Engineering' ? t.optEng : 
-                       post.category === 'Quality' ? t.optQual : t.optOps}
-                    </span>
-                    <small className="text-muted fw-medium">{post.createdAt ? new Date(parseInt(post.createdAt) ? parseInt(post.createdAt) : post.createdAt).toLocaleDateString() : 'Recent'}</small>
-                  </div>
-                  
-                  {/* Renders image dynamically right above text if file path string is saved in database query */}
-                  {post.imageUrl && (
-                    <img 
-                      src={post.imageUrl} 
-                      alt={post.title} 
-                      className="w-100 mb-4 rounded-3 shadow-sm border" 
-                      style={{ maxHeight: '350px', objectFit: 'cover' }} 
-                    />
-                  )}
-                  
-                  <h3 className="text-dark fw-bold mb-2 h4">{post.title}</h3>
-                  {post.summary && <h5 className="text-secondary fw-semibold small mb-3 fs-6">{post.summary}</h5>}
-                  <p className="text-secondary lh-lg mb-0" style={{ textAlign: 'justify', whiteSpace: 'pre-line' }}>{post.content}</p>
-                </article>
-              ))
             ) : (
-              testimonials.map((test) => (
-                <article key={test._id} className="p-4 p-md-5 border rounded-4 bg-white shadow-sm d-flex gap-4 align-items-start" style={{ borderLeft: '5px solid #ffc107 !important' }}>
-                  {test.imageUrl && (
-                    <img src={test.imageUrl} alt={test.company} className="rounded-circle border bg-light flex-shrink-0 d-none d-sm-block" style={{ width: '65px', height: '64px', objectFit: 'cover' }} />
-                  )}
-                  <div className="flex-grow-1">
-                    <p className="text-dark fst-italic lh-lg mb-3 fs-5">"{test.quote}"</p>
-                    <h5 className="text-dark fw-bold mb-1 fs-6">{test.clientName}</h5>
-                    <span className="text-muted small fw-medium">{test.role} — <strong className="text-dark">{test.company}</strong></span>
+              <>
+                {/* 1. BLOG TAB STREAMS VIEWPORT */}
+                {activeTab === 'blog' && (
+                  posts.length === 0 ? (
+                    <div className="text-center py-4 border rounded bg-white shadow-sm">{t.lblEmpty}</div>
+                  ) : (
+                    posts.map((post) => (
+                      <article key={post._id} className="blog-article-card p-4 p-md-5 shadow-sm bg-white w-100">
+                        <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                          <span className="blog-category-badge">Suess Intel Insights</span>
+                          <small className="text-muted fw-medium">
+                            {post.createdAt ? new Date(parseInt(post.createdAt) ? parseInt(post.createdAt) : post.createdAt).toLocaleDateString() : 'Recent'}
+                          </small>
+                        </div>
+                        {post.imageUrl && <img src={post.imageUrl} alt={post.title} className="w-100 mb-4 rounded-3 shadow-sm border" style={{ maxHeight: '350px', objectFit: 'cover' }} />}
+                        <h3 className="text-dark fw-bold mb-2 h4">{post.title}</h3>
+                        {post.summary && <h5 className="text-secondary fw-semibold small mb-3 fs-6">{post.summary}</h5>}
+                        <p className="text-secondary lh-lg mb-0" style={{ textAlign: 'justify', whiteSpace: 'pre-line' }}>{post.content}</p>
+                      </article>
+                    ))
+                  )
+                )}
+
+                {/* 2. TESTIMONIALS TAB STREAMS VIEWPORT */}
+                {activeTab === 'testimonials' && (
+                  testimonials.length === 0 ? (
+                    <div className="text-center py-4 border rounded bg-white shadow-sm">No client reviews published yet.</div>
+                  ) : (
+                    testimonials.map((test) => (
+                      <article key={test._id} className="p-4 p-md-5 border rounded-4 bg-white shadow-sm d-flex gap-4 align-items-start w-100" style={{ borderLeft: '5px solid #ffc107 !important' }}>
+                        {test.imageUrl && <img src={test.imageUrl} alt={test.company} className="rounded-circle border bg-light flex-shrink-0 d-none d-sm-block" style={{ width: '65px', height: '64px', objectFit: 'cover' }} />}
+                        <div className="flex-grow-1">
+                          <p className="text-dark fst-italic lh-lg mb-3 fs-5">"{test.quote}"</p>
+                          <h5 className="text-dark fw-bold mb-1 fs-6">{test.clientName}</h5>
+                          <span className="text-muted small fw-medium">{test.role} — <strong className="text-dark">{test.company}</strong></span>
+                        </div>
+                      </article>
+                    ))
+                  )
+                )}
+
+                {/* 3. INBOUND LEADS TAB STREAMS VIEWPORT */}
+                {activeTab === 'leads' && isAdmin && (
+                  <div className="d-flex flex-column gap-3 w-100">
+                    
+                    {/* 🚀 FIXED HEADER POSITION: Placed completely OUTSIDE the map loop row block! */}
+                    <div className="text-end mb-2">
+                      <button 
+                        type="button" 
+                        onClick={syncPlatformStreams} 
+                        className="btn btn-sm btn-dark rounded-pill px-4 shadow-sm border border-warning" 
+                        style={{ fontSize: '0.85rem', fontWeight: 600 }}
+                      >
+                        🔄 Refresh Live Feed
+                      </button>
+                    </div>
+
+                    {submissions.length === 0 ? (
+                      <div className="text-center py-5 text-muted border rounded bg-white shadow-sm">{t.lblLeadEmpty}</div>
+                    ) : (
+                      submissions.map((lead) => (
+                        <div key={lead._id} className="p-4 border rounded-3 bg-white shadow-sm border-start border-warning border-4 w-100">
+                          <div className="d-flex justify-content-between align-items-start border-bottom pb-2 mb-3 flex-wrap gap-2">
+                            <div>
+                              <h5 className="text-dark fw-bold mb-0 fs-5">{lead.name}</h5>
+                              <span className="text-muted small fw-semibold">Suess Consulting Inbound Lead</span>
+                            </div>
+                            <small className="text-muted fw-medium">
+                              {lead.createdAt ? new Date(parseInt(lead.createdAt) ? parseInt(lead.createdAt) : lead.createdAt).toLocaleDateString() : 'Recent'}
+                            </small>
+                          </div>
+                          <p className="text-secondary mb-3 lh-base fs-6" style={{ whiteSpace: 'pre-line' }}>
+                            <strong className="text-dark small d-block mb-1">📋 {t.lblMessage}:</strong>
+                            "{lead.message}"
+                          </p>
+                          <div className="bg-light p-2 rounded text-muted small border d-flex gap-3 flex-wrap">
+                            <span>📧 <strong>Email Address:</strong> <a href={`mailto:${lead.email}`} className="text-danger text-decoration-none fw-semibold">{lead.email}</a></span>
+                            {lead.phone && <span>📞 <strong>Contact Phone:</strong> {lead.phone}</span>}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-                </article>
-              ))
+                )}
+              </>
             )}
           </div>
 
@@ -396,7 +427,6 @@ const BlogFeed = () => {
 };
 
 export default BlogFeed;
-
 
 
 
