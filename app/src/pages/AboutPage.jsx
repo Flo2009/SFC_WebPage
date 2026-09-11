@@ -40,6 +40,8 @@ const AboutPage = () => {
         .partner-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
         .suess-partner-card:hover .partner-img { transform: scale(1.03); }
         .partner-meta { font-size: 1.15rem; color: #dc3545; font-weight: 500; letter-spacing: 0.3px; }
+        
+        .hero-alignment-wrapper { position: absolute; bottom: -68px; left: 0; width: 100%; z-index: 30; }
         .lang-toggle-badge { position: absolute; top: -55px; right: 10px; display: flex; gap: 10px; }
         .lang-btn { background: #343a40; color: #fff; border: 1px solid #ffc107; font-size: 0.85rem; font-weight: 600; border-radius: 20px; padding: 5px 15px; cursor: pointer; transition: all 0.2s ease; }
         .lang-btn.active-lang { background: #ffc107; color: #343a40; }

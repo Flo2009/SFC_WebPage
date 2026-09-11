@@ -24,6 +24,8 @@ import AboutPage from './pages/AboutPage';
 import LandingPage from './pages/LandingPage';
 import BlogFeed from './pages/BlogFeed';
 import LoginPage from './pages/LoginPage'; // Added your new standalone Login page import reference
+import JobBoard from './pages/JobBoard'; // 🚀 RESTORES THE PATH POINTER LINK!
+import RecruiterDashboard from './pages/RecruiterDashboard.jsx'; 
 
 const httpLink = createHttpLink({
   uri: 'http://localhost:3001/graphql',
@@ -64,7 +66,9 @@ const router = createBrowserRouter([
       { path: '/about', element: <AboutPage /> },
       { path: '/contact', element: <ContactPage /> },
       { path: '/blog', element: <BlogFeed /> },
-      
+      { path: '/careers', element: <JobBoard /> },
+      // 🚀 2. MOUNT THE SECURE RECRUITER PORTAL GATEWAY PATH
+      { path: 'recruiter-dashboard', element: <RecruiterDashboard /> },
       // Zero hardcoded strings! Dynamically parsed at boot time.
       { path: import.meta.env.VITE_SECRET_PORTAL_PATH, element: <LoginPage /> }, 
     ],

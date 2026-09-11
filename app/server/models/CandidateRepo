@@ -1,0 +1,43 @@
+const { Schema, model } = require('mongoose');
+
+const candidateRepoSchema = new Schema(
+  {
+    name: {
+      type: String,
+      default: 'Extracted Profile'
+    },
+    email: {
+      type: String,
+      required: true
+    },
+    phone: String,
+    assignedPillar: {
+      type: String,
+      enum: ['Engineering', 'Management', 'Unmapped'],
+      default: 'Unmapped'
+    },
+    extractedSkills: [{ type: String }],
+    resumeText: {
+      type: String,
+      required: true
+    },
+    // 🚀 NEW ATS METRICS: Industry-standard rating and assessment logs
+    recruiterRating: {
+      type: Number,
+      min: 1,
+      max: 5,
+      default: 3 // Default candidate score starts balanced at 3 stars
+    },
+    recruiterNotes: {
+      type: String,
+      default: '' // Keeps notes field clear for manual references
+    }
+  },
+  {
+    timestamps: true
+  }
+);
+
+const CandidateRepo = model('CandidateRepo', candidateRepoSchema);
+module.exports = CandidateRepo;
+

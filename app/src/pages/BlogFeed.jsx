@@ -213,7 +213,43 @@ const BlogFeed = () => {
     }
   };
 
-  return (
+  const handlePruneRecord = async (targetId, mutationName) => {
+    if (!window.confirm("Are you certain you want to permanently clear this record from MongoDB?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:3001/graphql', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${localStorage.getItem('id_token')}` 
+        },
+        body: JSON.stringify({
+          query: `
+            mutation PruneRecord($id: ID!) {
+              ${mutationName}(id: $id)
+            }
+          `,
+          variables: { id: targetId }
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.errors) {
+        console.error("❌ Deletion rejected by backend server schema:", result.errors);
+        return;
+      }
+      
+      // Dynamic feed data refresh loop execution
+      syncPlatformStreams();
+    } catch (err) {
+      console.error("Critical error firing administrative deletion matrix:", err);
+    }
+  };
+
+    return (
     <div className="blog-page bg-white" style={{ fontFamily: "'Quicksand', sans-serif !important" }}>
       <style>{`
         .blog-page * { font-family: 'Quicksand', sans-serif !important; }
@@ -230,17 +266,20 @@ const BlogFeed = () => {
         .sub-tab-pill { background: transparent; border: 1px solid #dee2e6; color: #495057; font-weight: 600; padding: 8px 24px; border-radius: 25px; transition: all 0.2s ease; cursor: pointer; }
         .sub-tab-pill.active-sub-tab { background: #343a40; color: #ffffff; border-color: #343a40; }
         .admin-editor-card { border: 2px dashed #ffc107 !important; border-radius: 16px; background-color: #fff9e6; }
+        
         .hero-alignment-wrapper { position: absolute; bottom: -68px; left: 0; width: 100%; z-index: 30; }
         .lang-toggle-badge { display: flex; gap: 10px; float: right; padding-right: 15px; }
-        .lang-btn { background: #343a40 !important; color: #fff !important; border: 1px solid #ffc107 !important; font-size: 0.85rem; font-weight: 600; border-radius: 20px; padding: 5px 15px; cursor: pointer; transition: all 0.2s ease; }
-        .lang-btn.active-lang { background: #ffc107 !important; color: #343a40 !important; }
+        .lang-btn { background: #343a40; color: #fff; border: 1px solid #ffc107; font-size: 0.85rem; font-weight: 600; border-radius: 20px; padding: 5px 15px; cursor: pointer; transition: all 0.2s ease; }
+        .lang-btn.active-lang { background: #ffc107; color: #343a40; }
       `}</style>
 
-      {/* Hero Banner */}
+      {/* Hero Banner Section */}
       <section className="text-white px-3 text-center border-bottom border-dark position-relative" style={{ backgroundImage: `linear-gradient(rgba(33, 37, 41, 0.75), rgba(33, 37, 41, 0.8)), url(${automationBg})`, backgroundSize: 'cover', minHeight: '400px', display: 'flex', alignItems: 'center', paddingTop: '140px' }}>
         <div className="container position-relative w-100" style={{ zIndex: 2 }}>
           <h1 className="suess-hero-title mb-3">{t.heroTitle}</h1>
           <p className="suess-hero-subtitle lh-md mb-3">{t.heroSubtitle}</p>
+          
+          {/* Language Toggle Badge sitting perfectly on the border split line row */}
           <div className="hero-alignment-wrapper">
             <div className="lang-toggle-badge">
               <button type="button" onClick={() => setLang('EN')} className={`lang-btn ${lang === 'EN' ? 'active-lang' : ''}`}>EN</button>
@@ -254,19 +293,19 @@ const BlogFeed = () => {
       <section className="py-5 bg-light px-3">
         <div className="container py-4" style={{ maxWidth: '850px', position: 'relative' }}>
           
-          <div className="text-start mb-4 ps-2">
-            <div><span className="section-flag-title">{t.sectionTitle}</span><span className="section-flag-line"></span></div>
-            <h2 className="section-main-heading">
-              {activeTab === 'blog' ? t.heading : activeTab === 'testimonials' ? t.tabReviews : t.tabLeads}
-            </h2>
+          <div className="text-start mb-4 ps-2 d-flex justify-content-between align-items-end flex-wrap gap-3">
+            <div>
+              <div><span className="section-flag-title">{t.sectionTitle}</span><span className="section-flag-line"></span></div>
+              <h2 className="section-main-heading mb-0">{activeTab === 'blog' ? t.heading : activeTab === 'testimonials' ? t.tabReviews : t.tabLeads}</h2>
+            </div>
             {isAdmin && (
-              <div style={{ position: 'absolute', top: '10px', right: '15px' }}>
-                <button type="button" onClick={handleAdminLogout} className="btn btn-outline-danger btn-sm rounded-pill px-4">{t.lblLogoutBtn}</button>
+              <div>
+                <button type="button" onClick={handleAdminLogout} className="btn btn-outline-danger btn-sm rounded-pill px-4 fw-bold">{t.lblLogoutBtn}</button>
               </div>
             )}
           </div>
 
-          {/* DYNAMIC TAB CONTROLS */}
+          {/* DYNAMIC TAB NAVIGATION CONTROLS */}
           <div className="d-flex gap-2 mb-5 border-bottom pb-3">
             <button onClick={() => { setActiveTab('blog'); setValidationError(''); }} className={`sub-tab-pill ${activeTab === 'blog' ? 'active-sub-tab' : ''}`}>{t.tabPosts}</button>
             {(testimonials.length > 0 || isAdmin) && (
@@ -326,14 +365,13 @@ const BlogFeed = () => {
               </form>
             </div>
           )}
-
           {/* DISPLAY CONTENT LIST STREAMS */}
           <div className="d-flex flex-column gap-4 w-100">
             {uiLoading ? (
               <div className="text-center py-5 text-muted">{t.lblLoading}</div>
             ) : (
               <>
-                {/* 1. BLOG TAB STREAMS VIEWPORT */}
+                {/* 1. BLOG FEED POSTS LOOP */}
                 {activeTab === 'blog' && (
                   posts.length === 0 ? (
                     <div className="text-center py-4 border rounded bg-white shadow-sm">{t.lblEmpty}</div>
@@ -342,20 +380,25 @@ const BlogFeed = () => {
                       <article key={post._id} className="blog-article-card p-4 p-md-5 shadow-sm bg-white w-100">
                         <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                           <span className="blog-category-badge">Suess Intel Insights</span>
-                          <small className="text-muted fw-medium">
-                            {post.createdAt ? new Date(parseInt(post.createdAt) ? parseInt(post.createdAt) : post.createdAt).toLocaleDateString() : 'Recent'}
-                          </small>
+                          <small className="text-muted fw-medium">{post.createdAt ? new Date(parseInt(post.createdAt) ? parseInt(post.createdAt) : post.createdAt).toLocaleDateString() : 'Recent'}</small>
                         </div>
                         {post.imageUrl && <img src={post.imageUrl} alt={post.title} className="w-100 mb-4 rounded-3 shadow-sm border" style={{ maxHeight: '350px', objectFit: 'cover' }} />}
                         <h3 className="text-dark fw-bold mb-2 h4">{post.title}</h3>
                         {post.summary && <h5 className="text-secondary fw-semibold small mb-3 fs-6">{post.summary}</h5>}
                         <p className="text-secondary lh-lg mb-0" style={{ textAlign: 'justify', whiteSpace: 'pre-line' }}>{post.content}</p>
+                        
+                        {/* ADMIN POST REMOVAL REFRESH */}
+                        {isAdmin && (
+                          <div className="text-end border-top pt-2 mt-4">
+                            <button type="button" onClick={() => handlePruneRecord(post._id, 'deleteBlog')} className="btn btn-sm btn-outline-danger rounded-pill px-4" style={{ fontSize: '0.85rem', fontWeight: 600 }}>🗑️ Delete Article</button>
+                          </div>
+                        )}
                       </article>
                     ))
                   )
                 )}
 
-                {/* 2. TESTIMONIALS TAB STREAMS VIEWPORT */}
+                {/* 2. TESTIMONIALS LOOP */}
                 {activeTab === 'testimonials' && (
                   testimonials.length === 0 ? (
                     <div className="text-center py-4 border rounded bg-white shadow-sm">No client reviews published yet.</div>
@@ -368,25 +411,22 @@ const BlogFeed = () => {
                           <h5 className="text-dark fw-bold mb-1 fs-6">{test.clientName}</h5>
                           <span className="text-muted small fw-medium">{test.role} — <strong className="text-dark">{test.company}</strong></span>
                         </div>
+                        {/* ADMIN TESTIMONIAL REMOVAL REFRESH */}
+                        {isAdmin && (
+                          <div className="text-end border-top pt-2 mt-2">
+                            <button type="button" onClick={() => handlePruneRecord(test._id, 'deleteTestimonial')} className="btn btn-sm btn-outline-danger rounded-pill px-4" style={{ fontSize: '0.85rem', fontWeight: 600 }}>🗑️ Remove Testimonial</button>
+                          </div>
+                        )}
                       </article>
                     ))
                   )
                 )}
 
-                {/* 3. INBOUND LEADS TAB STREAMS VIEWPORT */}
+                {/* 3. INBOUND LEADS SECURED LOOP */}
                 {activeTab === 'leads' && isAdmin && (
                   <div className="d-flex flex-column gap-3 w-100">
-                    
-                    {/* 🚀 FIXED HEADER POSITION: Placed completely OUTSIDE the map loop row block! */}
                     <div className="text-end mb-2">
-                      <button 
-                        type="button" 
-                        onClick={syncPlatformStreams} 
-                        className="btn btn-sm btn-dark rounded-pill px-4 shadow-sm border border-warning" 
-                        style={{ fontSize: '0.85rem', fontWeight: 600 }}
-                      >
-                        🔄 Refresh Live Feed
-                      </button>
+                      <button type="button" onClick={syncPlatformStreams} className="btn btn-sm btn-dark rounded-pill px-4 shadow-sm border border-warning" style={{ fontSize: '0.85rem', fontWeight: 600 }}>🔄 Refresh Live Feed</button>
                     </div>
 
                     {submissions.length === 0 ? (
@@ -399,17 +439,18 @@ const BlogFeed = () => {
                               <h5 className="text-dark fw-bold mb-0 fs-5">{lead.name}</h5>
                               <span className="text-muted small fw-semibold">Suess Consulting Inbound Lead</span>
                             </div>
-                            <small className="text-muted fw-medium">
-                              {lead.createdAt ? new Date(parseInt(lead.createdAt) ? parseInt(lead.createdAt) : lead.createdAt).toLocaleDateString() : 'Recent'}
-                            </small>
+                            <small className="text-muted fw-medium">{lead.createdAt ? new Date(parseInt(lead.createdAt) ? parseInt(lead.createdAt) : lead.createdAt).toLocaleDateString() : 'Recent'}</small>
                           </div>
                           <p className="text-secondary mb-3 lh-base fs-6" style={{ whiteSpace: 'pre-line' }}>
                             <strong className="text-dark small d-block mb-1">📋 {t.lblMessage}:</strong>
                             "{lead.message}"
                           </p>
-                          <div className="bg-light p-2 rounded text-muted small border d-flex gap-3 flex-wrap">
-                            <span>📧 <strong>Email Address:</strong> <a href={`mailto:${lead.email}`} className="text-danger text-decoration-none fw-semibold">{lead.email}</a></span>
-                            {lead.phone && <span>📞 <strong>Contact Phone:</strong> {lead.phone}</span>}
+                          <div className="bg-light p-3 rounded text-muted small border d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <span>
+                              📧 <strong>Email Address:</strong> <a href={`mailto:${lead.email}`} className="text-danger text-decoration-none fw-semibold">{lead.email}</a>
+                              {lead.phone && <span className="ms-3">📞 <strong>Contact Phone:</strong> {lead.phone}</span>}
+                            </span>
+                            <button type="button" onClick={() => handlePruneRecord(lead._id, 'deleteSubmission')} className="btn btn-sm btn-danger rounded-pill px-4 fw-bold shadow-sm" style={{ fontSize: '0.85rem' }}>✓ Archive / Contacted</button>
                           </div>
                         </div>
                       ))
@@ -427,6 +468,8 @@ const BlogFeed = () => {
 };
 
 export default BlogFeed;
+
+
 
 
 
